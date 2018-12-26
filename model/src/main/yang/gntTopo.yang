@@ -1,0 +1,378 @@
+module topo {
+
+    yang-version 1;
+
+    namespace "urn:cmcc:aero:generaltopo";
+
+    prefix topo;
+    
+    revision "2017-7-11" {
+        description "Initial revision of topo model";
+    }
+
+    import ietf-inet-types { prefix inet; revision-date 2013-07-15; }
+    import ietf-yang-types { prefix yang; revision-date "2013-07-15";}
+    
+    
+    typedef node-ref {
+        description "A reference to an endpoint to node";
+        type instance-identifier;
+    }
+
+    typedef network-ref {
+        description "A reference to an endpoint to network";
+        type instance-identifier;
+    }
+
+    typedef subnet-ref {
+        description "A reference to an endpoint to subnet";
+        type instance-identifier;
+    }
+
+    typedef tenant-ref {
+        description "A reference to an endpoint to tenant";
+        type instance-identifier;
+    }
+
+   typedef port-ref {
+        description "A reference to an endpoint to port";
+        type instance-identifier;
+   }
+
+   typedef route-ref {
+        description "A reference to an endpoint to router";
+        type instance-identifier; 
+   }
+   
+   identity network-type-base {
+        description
+                "Base Network type for all Network type identifiers.";
+    }
+
+    identity network-type-flat {
+        base network-type-base;
+        description
+                "Flat network type identity.";
+    }
+    identity network-type-vlan {
+        base network-type-base;
+        description
+                "VLAN network type identity.";
+    }
+    identity network-type-vxlan {
+        base network-type-base;
+        description
+                "VXLAN network type identity.";
+    }
+    identity network-type-gre {
+        base network-type-base;
+        description
+                "GRE network type identity.";
+    }
+
+    typedef network-type {
+        type identityref {
+            base network-type-base;
+        }
+        description
+                "This type is used to refer to a Network Type.";
+    }
+
+    identity node-type-base {
+        description
+                "Base  node type identifiers.";
+    }
+
+    identity switch-type-base {
+        base node-type-base;
+        description
+                "switch node type";
+    }
+   
+    identity ovs-type-base {
+        base node-type-base;
+        description
+                "ovs node type";
+    }
+    
+    typedef node-type {
+        type identityref {
+            base node-type-base;
+        }
+        description
+                "This type is used to refer to a node Type.";
+    }
+
+    grouping tunnel-attributes {
+      leaf tunnel-uuid {
+            description "The unique identifier of the tunnel";
+            type yang:uuid;
+      }
+      leaf node-id {
+            description "ref of the ovs or switch";
+            type node-ref;
+      }
+                   
+      leaf ofport{
+            description "Port/Interface related tunnel";
+            type uint32;
+      } 
+    }
+
+    grouping tenant-attributes {
+      container tenants {
+        leaf tenant-id {
+            type yang:uuid;
+            description "The UUID of the tenant that will own the object.";
+        }
+      }
+    }
+
+    
+    grouping network-attributes {
+      container networks {
+        list network {
+          key network-uuid;
+          leaf network-uuid {
+            type yang:uuid;
+          }
+
+          leaf network-type {
+             type network-type;
+          }
+          leaf tenant-id {
+             type tenant-ref;
+          }
+          leaf segmentionid {
+            type string;
+         }
+      }
+     }
+                  
+    }
+
+    grouping port-attributes {
+        leaf port-uuid {
+            type yang:uuid;
+        }
+
+        leaf network-id {
+            type network-ref;
+        }
+
+        leaf mac-address {
+            type yang:mac-address;
+        }
+        
+        list fixed-ips {
+            key "subnet-id ip-address";
+            leaf subnet-id {
+                type subnet-ref;
+            }
+            leaf ip-address {
+                type inet:ip-address;
+            }
+        }
+
+       leaf-list security-groups {
+            type yang:uuid;
+        }
+       
+       leaf ofport{
+            description "Port/Interface related ofport";
+            type uint32;
+        } 
+    }
+
+    grouping router-attributes {
+      container routers {
+       list router{
+        key "router-id";
+        leaf router-id {
+             type yang:uuid;
+        }
+        list subnets {
+          key "subnet-id ip-address";          
+          leaf subnet-id {
+             type subnet-ref;
+          }
+          leaf ip-address {
+             type inet:ip-address;
+          }
+          leaf macaddr {
+              type yang:mac-address;
+          }
+
+       }
+       
+       leaf vni {
+          type string;
+          description "route vni";
+       }
+        uses static_route-attributes;
+        uses external_gateway_info; 
+      }
+     }
+    }
+     
+    grouping static_route-attributes {
+       container static_gateway {
+        leaf gateway-port-id {
+            description "the port uuid holding the router's gateway address.";
+            type port-ref;
+        }
+        list routes {
+            description "list of routes for this router.";
+            key "destination nexthop";
+            leaf destination {
+                description "Specifies a destination in CIDR format";
+                type inet:ip-prefix;
+            }
+            leaf nexthop {
+                type inet:ip-address;
+            }
+        } 
+     }
+    }
+    
+   grouping external_gateway_info {
+         container external_gateway {
+           leaf external-network-id {
+             type yang:uuid;
+           }
+          leaf enable-snat {
+             type boolean;
+             default "true";
+           }
+          list external-fixed-ips {
+             description "external fixed IPs for this router ";
+             key "subnet-id ip-address";
+             leaf subnet-id {
+                 type subnet-ref;
+             }
+             leaf ip-address {
+                 type inet:ip-address;
+             }
+        }
+     }
+   }
+ 
+   grouping subnet-attributes {
+       container subnets {
+        list subnet {
+         key "subnet-uuid";
+         leaf subnet-uuid {
+            type yang:uuid;
+        }
+        
+        leaf network-id {
+            type network-ref;
+        }
+        
+        leaf cidr {
+            type inet:ip-prefix;
+            description "cidr representing IP range for this subnet, based on IP version";
+        }
+        
+        leaf gateway-ip {
+            type inet:ip-address;
+            description "default gateway used by devices in this subnet";
+        }
+      }
+     }
+    }
+
+    grouping delete-attributes {
+         leaf port-id {
+              type port-ref;
+         }
+    }
+
+    
+    grouping logictopo {
+       container nodes {
+         list node {
+              key "datapath-id";
+              description "A node is a ovs node or swtich node or other.";
+              leaf datapath-id {
+                 description "Datapath-id of the ovs or switch";
+                 type string;
+               }
+
+               leaf type {
+                 description "Type of the node ovs or switch";
+                 type node-type;
+               }
+               
+               leaf tunnel-ip {
+                 description "switch or ovs tunnel ip";
+                 type inet:ip-address;
+               }
+
+               leaf minport {
+                  description "switch logical port min";
+                  type uint32;
+               }
+               container tunnels {
+                 list tunnel {
+                   key "tunnel-uuid";
+                   uses tunnel-attributes;                 
+                 }
+              }
+
+              container deletes {
+                leaf wait-time {
+                   type uint32;
+               }
+               list delete {
+                 key "port-id";
+                 uses delete-attributes;              
+               }
+              }
+              
+  
+              
+              container ports {
+              list port {
+                key "port-uuid";
+                uses port-attributes;    
+               }
+              }
+
+              container route-subnets {
+                list route-subnet {
+                   key "route-id subnet-id";
+                      leaf route-id {
+                          type route-ref;
+                       }
+                      leaf subnet-id {
+                          type subnet-ref;
+                       }
+                 }
+             }
+           
+         }
+       }
+    }
+
+    grouping sysset {
+       container syssets {      
+        leaf vni-min {
+            type uint32;
+        }
+        
+       leaf vni-max {
+            type uint32;
+        }
+      }
+    }
+   
+
+    container topo {
+        uses logictopo;
+        uses sysset;
+        uses network-attributes;
+        uses subnet-attributes;
+        uses router-attributes;
+    }
+  }
